@@ -1,17 +1,6 @@
 import { serve } from "bun";
 import index from "./index.html";
 
-const randomNameGenerator = () => {
-  const words = ["Apple", "Banana", "Cherry", "Dog", "Elephant", "Frog", "Guitar", "House", "Igloo", "Jungle", "Kangaroo", "Lemon", "Mango", "Noodle", "Octopus", "Penguin", "Quilt", "Rabbit", "Snake", "Tiger", "Umbrella", "Violin", "Watermelon", "Xylophone", "Yacht", "Zebra"];
-  const emojis = ["🍎", "🍌", "🍒", "🐶", "🐘", "🐸", "🎸", "🏠", "🏠", "🌴", "🐘", "🍋", "🥭", "🍜", "🐙", "🐧", "🏘️", "🐰", "🐍", "🐯", "🌂", "🎻", "🍉", "🎹", "🛥️", "🦄"];
-  const descripitor = ["Awesome", "Cool", "Great", "Amazing", "Fantastic", "Wonderful", "Super", "Cool", "Great", "Amazing", "Fantastic", "Wonderful", "Super", "Cool", "Great", "Amazing", "Fantastic", "Wonderful", "Super", "Cool", "Great", "Amazing", "Fantastic", "Wonderful", "Super"];
-  const randomIndex = Math.floor(Math.random() * words.length);
-  return {
-    name: `${descripitor[Math.floor(Math.random() * descripitor.length)]} ${words[randomIndex]}`,
-    authorEmoji: emojis[randomIndex],
-  };
-}
-
 interface ChatMessage {
   userId: string;
   author: string;
@@ -122,3 +111,101 @@ console.log(`🚀 Server running at ${server.url}`);
 //     timestamp: new Date().toISOString(),
 //   }));
 // }, 100);
+
+
+const wordEmojis = {
+  "Apple": "🍎",
+  "Banana": "🍌",
+  "Cherry": "🍒",
+  "Dog": "🐶",
+  "Elephant": "🐘",
+  "Frog": "🐸",
+  "Guitar": "🎸",
+  "House": "🏠",
+  "Igloo": "🧊",
+  "Jungle": "🌴",
+  "Kangaroo": "🦘",
+  "Lemon": "🍋",
+  "Mango": "🥭",
+  "Noodle": "🍜",
+  "Octopus": "🐙",
+  "Penguin": "🐧",
+  "Quilt": "🏘️",
+  "Rabbit": "🐰",
+  "Snake": "🐍",
+  "Tiger": "🐯",
+  "Umbrella": "🌂",
+  "Violin": "🎻",
+  "Watermelon": "🍉",
+  "Xylophone": "🎹",
+  "Yacht": "🛥️",
+  "Zebra": "🦄",
+  "Bear": "🐻",
+  "Cat": "🐱",
+  "Dolphin": "🐬",
+  "Eagle": "🦅",
+  "Fish": "🐟",
+  "Giraffe": "🦒",
+  "Hippo": "🦛",
+  "Ice cream": "🍦",
+  "Jellyfish": "🪼",
+  "Koala": "🐨",
+  "Lion": "🦁",
+  "Monkey": "🐒",
+  "Narwhal": "🐋",
+  "Owl": "🦉",
+  "Panda": "🐼",
+  "Bee": "🐝",
+  "Raccoon": "🦝",
+  "Shark": "🦈",
+  "Turtle": "🐢",
+  "Unicorn": "🦄",
+  "Vulture": "🦅",
+  "Whale": "🐋",
+  "Fox": "🦊",
+  "Cow": "🐮",
+  // "Zucchini": "🥒"
+};
+
+const descriptors = [
+  "Awesome",
+  "Cool",
+  "Great",
+  "Amazing",
+  "Fantastic",
+  "Wonderful",
+  "Super",
+  "Fabulous",
+  "Brilliant",
+  "Clever",
+  "Dazzling",
+  "Elegant",
+  "Fearless",
+  "Graceful",
+  "Heroic",
+  "Incredible",
+  "Jolly",
+  "Kind",
+  "Lovely",
+  "Magical",
+  "Noble",
+  "Outstanding",
+  "Perfect",
+  "Quick",
+  "Radiant",
+  "Splendid",
+  "Terrific",
+  "Unique",
+  "Vibrant"
+];
+
+const words = Object.keys(wordEmojis);
+
+const randomNameGenerator = () => {
+  const randomWord = words[Math.floor(Math.random() * words.length)];
+
+  return {
+    name: `${descriptors[Math.floor(Math.random() * descriptors.length)]} ${randomWord}`,
+    authorEmoji: wordEmojis[randomWord as keyof typeof wordEmojis],
+  };
+}

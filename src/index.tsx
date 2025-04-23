@@ -38,6 +38,12 @@ const server = serve<{
 
   websocket: {
     message(ws, message) {
+
+      if (message.toString() === 'ping') {
+        ws.send('pong');
+        return;
+      }
+
       try {
         // Check if message is a typing indicator
         const data = JSON.parse(message.toString());
@@ -49,6 +55,16 @@ const server = serve<{
             authorEmoji: ws.data.authorEmoji,
             type: "typing",
             isTyping: data.isTyping,
+            timestamp: new Date().toISOString(),
+          }));
+          return;
+        } else if (data.type === 'message') {
+          server.publish("chat", JSON.stringify({
+            userId: ws.data.id,
+            author: ws.data.name,
+            authorEmoji: ws.data.authorEmoji,
+            message: data.message,
+            type: "message",
             timestamp: new Date().toISOString(),
           }));
           return;

@@ -48,6 +48,9 @@ function useWebSocket() {
     const websocket = new WebSocket(url);
 
     websocket.onmessage = (event) => {
+      if (event.data === 'pong') {
+        return;
+      }
       const data = JSON.parse(event.data);
       if (data.type === "connect" && userId === null) {
         setUserId(id => id ?? data.userId);
@@ -71,6 +74,12 @@ function useWebSocket() {
       websocket.close();
     };
 
+    const pingInterval = setInterval(() => {
+      if (wsRef.current) {
+        wsRef.current.send('ping');
+      }
+    }, 25_000);
+
     wsRef.current = websocket;
     setWs(websocket);
 
@@ -78,6 +87,7 @@ function useWebSocket() {
       return () => {
         websocket.close();
         wsRef.current = null;
+        clearInterval(pingInterval);
       };
     }
   }, []);
@@ -117,22 +127,24 @@ const SystemMessage = memo(({ message, currentUserId }: { message: ChatMessage, 
             <span className="text-base leading-none">{message.authorEmoji}</span>
           )}
         </div>
-        {message.author} {message.userId === currentUserId ? "(You) have" : "has"}{" "}
-        {message.type === "connect" ? "joined" : "left"}
+        {message.userId === currentUserId ? `You (${message.author}) have ` : `${message.author} has `} {message.type === "connect" ? "joined" : "left"}
       </span>
     </div>
   );
 });
 
 // Update MessageInput component with Discord-like timing
-const MessageInput = memo(({ onSend, onTyping }: {
+const MessageInput = memo(({ onSend, onTyping, disabled }: {
   onSend: (message: string) => void;
   onTyping: (isTyping: boolean) => void;
+  disabled?: boolean;
 }) => {
   const inputMessage = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<number>(0);
   const lastTypingRef = useRef<number>(0);
   const TYPING_INTERVAL = 3500; // Send typing every 5 seconds
+
+  const [hasContent, setHasContent] = useState(false);
 
   const handleTyping = useCallback(() => {
     const now = Date.now();
@@ -167,6 +179,7 @@ const MessageInput = memo(({ onSend, onTyping }: {
       window.clearTimeout(typingTimeoutRef.current);
     }
     onTyping(false);
+    setHasContent(false);
     lastTypingRef.current = 0;
   }, [onSend, onTyping]);
 
@@ -175,13 +188,27 @@ const MessageInput = memo(({ onSend, onTyping }: {
       <textarea
         ref={inputMessage}
         rows={1}
-        className="flex-1 bg-neutral-800/50 backdrop-blur-sm text-neutral-100 border border-neutral-700/50 rounded-xl px-6 py-3 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 shadow-lg transition-all placeholder:text-neutral-400/50 resize-none"
-        placeholder="Type a message..."
-        onInput={handleTyping}
+        // disabled={disabled}
+        className="flex-1 bg-neutral-800/50 backdrop-blur-sm text-neutral-100 border border-neutral-700/50 rounded-xl px-6 py-3 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 shadow-lg transition-all placeholder:text-neutral-400/50 resize-none max-h-56 field-sizing-content disabled:opacity-50 disabled:cursor-not-allowed"
+        // placeholder={disabled ? "Connecting to server..." : "Type a message..."}
+        placeholder={"Type a message..."}
+        onInput={(e) => {
+          handleTyping();
+          // Auto-grow the textarea
+          const target = e.target as HTMLTextAreaElement;
+          target.style.height = 'auto';
+          target.style.height = `${target.scrollHeight + 2}px`;
+
+          setHasContent(target.value.trim().length > 0);
+        }}
         onKeyDown={(e) => {
+          const target = e.target as HTMLTextAreaElement;
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSubmit(e);
+
+            target.style.height = 'auto';
+            target.style.height = `${target.scrollHeight + 2}px`;
           }
         }}
         onBlur={() => {
@@ -191,7 +218,9 @@ const MessageInput = memo(({ onSend, onTyping }: {
       />
       <button
         type="submit"
-        className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-orange-500/25 transition-all duration-200 font-medium"
+        disabled={!hasContent || disabled}
+        className="bg-orange-600 hover:bg-orange-500 text-white px-4 sm:px-8 py-3 rounded-xl shadow-lg hover:shadow-orange-500/25 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        title={disabled ? "Connecting to server..." : (hasContent ? "Send message" : "Type a message first")}
       >
         Send
       </button>
@@ -211,15 +240,15 @@ const MessageGroupComponent = memo(({ group, userId }: { group: MessageGroup; us
 
   return (
     <div className={`mb-6 flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[70%] space-y-1.5`}>
+      <div className={`max-w-[70%] flex flex-col gap-1`}>
         <div className={`flex items-center gap-2 mb-2 ${isOwnMessage ? 'justify-end' : ''}`}>
-          <AuthorBubble author={isOwnMessage ? 'You' : group.author} emoji={group.authorEmoji} />
+          <AuthorBubble author={group.author} emoji={group.authorEmoji} />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           {group.messages.map((msg, i) => (
             <div key={i} className="group relative">
               <div className={[
-                'p-3.5 shadow-lg',
+                'p-3.5 shadow-lg rounded-sm',
                 isOwnMessage
                   ? 'bg-orange-600 text-white'
                   : 'bg-neutral-800 text-neutral-100',
@@ -282,23 +311,37 @@ const TypingIndicator = memo(({ typingUsers, currentUserId }: {
 const Attribution = memo(() => {
   return (
     <div className="hidden lg:block absolute top-4 right-4 text-neutral-500/75 text-sm">
-      <a 
-        href="https://riskymh.dev" 
-        target="_blank" 
+      <a
+        href="https://riskymh.dev"
+        target="_blank"
         rel="noopener noreferrer"
         className="hover:text-neutral-400/75 transition-colors"
       >
         by RiskyMH
       </a>
       {" • "}
-      <a 
-        href="https://github.com/RiskyMH/chatroom" 
-        target="_blank" 
+      <a
+        href="https://github.com/RiskyMH/chatroom"
+        target="_blank"
         rel="noopener noreferrer"
         className="hover:text-neutral-400/75 transition-colors"
       >
         GitHub
       </a>
+    </div>
+  );
+});
+
+// Add ConnectionStatus component
+const ConnectionStatus = memo(() => {
+  return (
+    <div className="text-center my-4">
+      <span className="text-sm text-gray-500 dark:text-gray-400/75 bg-slate-100/50 dark:bg-gray-800/50 px-4 py-2 rounded-full backdrop-blur-sm border border-slate-200/25 dark:border-gray-700/25 shadow-lg flex items-center justify-center gap-2 inline-flex">
+        <div className="w-5 h-5 rounded-full bg-slate-200/75 dark:bg-gray-700/75 flex items-center justify-center">
+          <div className="w-3 h-3 border-2 border-neutral-400/75 border-t-transparent rounded-full animate-spin" />
+        </div>
+        Connecting to server...
+      </span>
     </div>
   );
 });
@@ -329,7 +372,10 @@ export function App() {
 
   const sendMessage = useCallback((message: string) => {
     if (!ws) return;
-    ws.send(message);
+    ws.send(JSON.stringify({
+      type: 'message',
+      message
+    }));
   }, [ws]);
 
   const groupMessages = useCallback((messages: ChatMessage[]): (MessageGroup | ChatMessage)[] => {
@@ -414,6 +460,9 @@ export function App() {
     if (!ws) return;
 
     const messageHandler = (event: MessageEvent) => {
+      if (event.data === 'pong') {
+        return;
+      }
       const data = JSON.parse(event.data);
       if (data.type === 'typing') {
         setTypingUsers(prev => {
@@ -459,17 +508,29 @@ export function App() {
           ref={containerRef}
           className="flex-1 overflow-y-auto mb-4 rounded-2xl bg-neutral-800/50 backdrop-blur-sm p-6 shadow-xl border border-neutral-700/50"
         >
-          {groupedMessages.map((item, i) => (
-            'type' in item ? (
-              <SystemMessage key={i} message={item} currentUserId={userId} />
-            ) : (
-              <MessageGroupComponent key={i} group={item} userId={userId} />
-            )
-          ))}
-          <TypingIndicator typingUsers={typingUsers} currentUserId={userId} />
-          <div ref={messagesEndRef} />
+          {(ws?.readyState !== WebSocket.OPEN && groupedMessages.length === 0) ? (
+            <ConnectionStatus />
+          ) : (
+            <>
+              {groupedMessages.map((item, i) => (
+                ('type' in item && ['connect', 'disconnect'].includes(item.type)) ? (
+                  <SystemMessage key={i} message={item} currentUserId={userId} />
+                ) : 'type' in item ? (
+                  <span className="text-red-500/75">Unknown message type: {item.type}</span>
+                ) : (
+                  <MessageGroupComponent key={i} group={item} userId={userId} />
+                )
+              ))}
+              <TypingIndicator typingUsers={typingUsers} currentUserId={userId} />
+              <div ref={messagesEndRef} />
+            </>
+          )}
         </div>
-        <MessageInput onSend={sendMessage} onTyping={handleTyping} />
+        <MessageInput
+          onSend={sendMessage}
+          onTyping={handleTyping}
+          disabled={!ws}
+        />
       </div>
     </div>
   );

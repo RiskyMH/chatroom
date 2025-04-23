@@ -278,6 +278,31 @@ const TypingIndicator = memo(({ typingUsers, currentUserId }: {
   );
 });
 
+// Add new attribution component
+const Attribution = memo(() => {
+  return (
+    <div className="hidden lg:block absolute top-4 right-4 text-neutral-500/75 text-sm">
+      <a 
+        href="https://riskymh.dev" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="hover:text-neutral-400/75 transition-colors"
+      >
+        by RiskyMH
+      </a>
+      {" • "}
+      <a 
+        href="https://github.com/RiskyMH/chatroom" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="hover:text-neutral-400/75 transition-colors"
+      >
+        GitHub
+      </a>
+    </div>
+  );
+});
+
 // Main App component
 export function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -427,22 +452,25 @@ export function App() {
   }, []);
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl h-[100dvh] flex flex-col">
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto mb-4 rounded-2xl bg-neutral-800/50 backdrop-blur-sm p-6 shadow-xl border border-neutral-700/50"
-      >
-        {groupedMessages.map((item, i) => (
-          'type' in item ? (
-            <SystemMessage key={i} message={item} currentUserId={userId} />
-          ) : (
-            <MessageGroupComponent key={i} group={item} userId={userId} />
-          )
-        ))}
-        <TypingIndicator typingUsers={typingUsers} currentUserId={userId} />
-        <div ref={messagesEndRef} />
+    <div className="relative min-h-[100dvh] bg-neutral-900">
+      <Attribution />
+      <div className="container mx-auto p-4 max-w-4xl h-[100dvh] flex flex-col">
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-y-auto mb-4 rounded-2xl bg-neutral-800/50 backdrop-blur-sm p-6 shadow-xl border border-neutral-700/50"
+        >
+          {groupedMessages.map((item, i) => (
+            'type' in item ? (
+              <SystemMessage key={i} message={item} currentUserId={userId} />
+            ) : (
+              <MessageGroupComponent key={i} group={item} userId={userId} />
+            )
+          ))}
+          <TypingIndicator typingUsers={typingUsers} currentUserId={userId} />
+          <div ref={messagesEndRef} />
+        </div>
+        <MessageInput onSend={sendMessage} onTyping={handleTyping} />
       </div>
-      <MessageInput onSend={sendMessage} onTyping={handleTyping} />
     </div>
   );
 }

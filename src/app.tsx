@@ -238,6 +238,18 @@ const MessageGroupComponent = memo(({ group, userId }: { group: MessageGroup; us
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, []);
 
+  // Function to check if message contains only emojis and spaces
+  const isOnlyEmojis = useCallback((text: string) => {
+    // Remove all spaces
+    const noSpaces = text.replace(/\s/g, '');
+    // Match emoji pattern (including ZWJ sequences and variation selectors)
+    const emojiPattern = /^(?:[\u{1F300}-\u{1F9FF}]|[\u{1F000}-\u{1F02F}]|[\u{1F0A0}-\u{1F0FF}]|[\u{1F100}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F700}-\u{1F77F}]|[\u{1F780}-\u{1F7FF}]|[\u{1F800}-\u{1F8FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|\u200D|\uFE0F)+$/u;
+    // Count emojis
+    const emojiCount = Array.from(noSpaces.matchAll(/\p{Extended_Pictographic}/gu)).length;
+    
+    return emojiPattern.test(noSpaces) && emojiCount < 7;
+  }, []);
+
   return (
     <div className={`mb-6 flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[70%] flex flex-col gap-1`}>
@@ -245,34 +257,40 @@ const MessageGroupComponent = memo(({ group, userId }: { group: MessageGroup; us
           <AuthorBubble author={group.author} emoji={group.authorEmoji} />
         </div>
         <div className="flex flex-col gap-1">
-          {group.messages.map((msg, i) => (
-            <div key={i} className="group relative">
-              <div className={[
-                'p-3.5 shadow-lg rounded-sm',
-                isOwnMessage
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-neutral-800 text-neutral-100',
-                i === 0 && isOwnMessage ? 'rounded-tr-2xl rounded-tl-2xl rounded-b-sm' : '',
-                i === 0 && !isOwnMessage ? 'rounded-tr-2xl rounded-tl-2xl rounded-b-sm' : '',
-                i === group.messages.length - 1 && isOwnMessage ? 'rounded-br-2xl rounded-bl-2xl rounded-t-sm' : '',
-                i === group.messages.length - 1 && !isOwnMessage ? 'rounded-br-2xl rounded-bl-2xl rounded-t-sm' : '',
-                i !== 0 && i !== group.messages.length - 1 ? 'rounded-sm' : ''
-              ].join(' ')}>
-                <div className="text-base whitespace-pre-wrap break-words leading-normal">
-                  {msg.message}
-                </div>
-              </div>
-              {msg.timestamp && (
+          {group.messages.map((msg, i) => {
+            const onlyEmojis = isOnlyEmojis(msg.message);
+            return (
+              <div key={i} className="group relative">
                 <div className={[
-                  'absolute top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400/75',
-                  'opacity-0 group-hover:opacity-100 transition-all duration-300',
-                  isOwnMessage ? 'right-full mr-3' : 'left-full ml-3'
+                  'shadow-lg rounded-sm',
+                  onlyEmojis ? 'px-2.5 py-1.5' : 'p-3.5', // Reduced padding for emoji-only messages
+                  isOwnMessage
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-neutral-800 text-neutral-100',
+                  i === 0 && isOwnMessage ? 'rounded-tr-2xl rounded-tl-2xl rounded-b-sm' : '',
+                  i === 0 && !isOwnMessage ? 'rounded-tr-2xl rounded-tl-2xl rounded-b-sm' : '',
+                  i === group.messages.length - 1 && isOwnMessage ? 'rounded-br-2xl rounded-bl-2xl rounded-t-sm' : '',
+                  i === group.messages.length - 1 && !isOwnMessage ? 'rounded-br-2xl rounded-bl-2xl rounded-t-sm' : '',
+                  i !== 0 && i !== group.messages.length - 1 ? 'rounded-sm' : ''
                 ].join(' ')}>
-                  {formatMessageTime(msg.timestamp)}
+                  <div className={`whitespace-pre-wrap break-words leading-normal ${
+                    onlyEmojis ? 'text-3xl' : 'text-base'
+                  }`}>
+                    {msg.message}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+                {msg.timestamp && (
+                  <div className={[
+                    'absolute top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400/75',
+                    'opacity-0 group-hover:opacity-100 transition-all duration-300',
+                    isOwnMessage ? 'right-full mr-3' : 'left-full ml-3'
+                  ].join(' ')}>
+                    {formatMessageTime(msg.timestamp)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

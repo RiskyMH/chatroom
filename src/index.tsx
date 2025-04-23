@@ -12,10 +12,21 @@ const randomNameGenerator = () => {
   };
 }
 
+interface ChatMessage {
+  userId: string;
+  author: string;
+  authorEmoji: string;
+  message: string;
+  type: "message" | "connect" | "disconnect" | "typing";
+  timestamp: string;
+  isTyping?: boolean;
+}
+
 const server = serve<{
   id: string;
   name: string;
   authorEmoji: string;
+  isTyping?: boolean;
 }, any>({
   routes: {
     // Serve index.html for all unmatched routes.
@@ -28,7 +39,7 @@ const server = serve<{
     const u = new URL(req.url);
     if (u.pathname === "/ws") {
       // upgrade the request to a WebSocket
-        if (server.upgrade(req, { data: { id: crypto.randomUUID(), ...randomNameGenerator() } })) {
+      if (server.upgrade(req, { data: { id: crypto.randomUUID(), ...randomNameGenerator() } })) {
         return; // do not return a Response
       }
       return new Response("Upgrade failed", { status: 500 });
@@ -38,7 +49,26 @@ const server = serve<{
 
   websocket: {
     message(ws, message) {
-      // Broadcast the message to all connected clients
+      try {
+        // Check if message is a typing indicator
+        const data = JSON.parse(message.toString());
+        if (data.type === 'typing') {
+          ws.data.isTyping = data.isTyping;
+          server.publish("chat", JSON.stringify({
+            userId: ws.data.id,
+            author: ws.data.name,
+            authorEmoji: ws.data.authorEmoji,
+            type: "typing",
+            isTyping: data.isTyping,
+            timestamp: new Date().toISOString(),
+          }));
+          return;
+        }
+      } catch (e) {
+        // If not JSON, treat as regular message
+      }
+
+      // Regular message handling
       server.publish("chat", JSON.stringify({
         userId: ws.data.id,
         author: ws.data.name,
@@ -48,9 +78,10 @@ const server = serve<{
         timestamp: new Date().toISOString(),
       }));
     },
+
     open(ws) {
-      // Subscribe the client to the chat channel
       ws.subscribe("chat");
+
       server.publish("chat", JSON.stringify({
         userId: ws.data.id,
         author: ws.data.name,
@@ -60,8 +91,8 @@ const server = serve<{
         timestamp: new Date().toISOString(),
       }));
     },
-    close(ws, code, message) {
-      // Unsubscribe the client from the chat channel
+
+    close(ws) {
       server.publish("chat", JSON.stringify({
         userId: ws.data.id,
         author: ws.data.name,
@@ -72,6 +103,7 @@ const server = serve<{
       }));
       ws.unsubscribe("chat");
     },
+
     drain(ws) { },
     publishToSelf: true,
   },

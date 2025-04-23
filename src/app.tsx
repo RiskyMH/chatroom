@@ -229,7 +229,7 @@ const MessageGroupComponent = memo(({ group, userId }: { group: MessageGroup; us
                 i === group.messages.length - 1 && !isOwnMessage ? 'rounded-br-2xl rounded-bl-2xl rounded-t-sm' : '',
                 i !== 0 && i !== group.messages.length - 1 ? 'rounded-sm' : ''
               ].join(' ')}>
-                <div className="text-base break-words">
+                <div className="text-base whitespace-pre-wrap break-words leading-normal">
                   {msg.message}
                 </div>
               </div>

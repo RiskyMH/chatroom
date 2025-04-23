@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+}
+
+@theme {
+  --color-orange-500: oklch(0.705 0.213 47.604);
+  --color-orange-600: oklch(0.639 0.200 47.604);
+  --color-orange-700: oklch(0.574 0.187 47.604);
+}
+
+
+/* Remove any conflicting styles */

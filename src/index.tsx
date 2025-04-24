@@ -1,54 +1,44 @@
 import { serve } from "bun";
 import index from "./index.html";
 
-interface ChatMessage {
-  userId: string;
-  author: string;
-  authorEmoji: string;
-  message: string;
-  type: "message" | "connect" | "disconnect" | "typing";
-  timestamp: string;
-  isTyping?: boolean;
-}
 
-const server = serve<{
-  id: string;
-  name: string;
-  authorEmoji: string;
-  isTyping?: boolean;
-}, any>({
+const server = serve({
   routes: {
-    // Serve index.html for all unmatched routes.
     "/": index,
+    "/ws": {
+      GET: (req, server) => {
+        const randomName = randomNameGenerator();
+        const data = { id: crypto.randomUUID(), name: randomName.name, authorEmoji: randomName.emoji }
+
+        // upgrade the request to a WebSocket
+        if (server.upgrade(req, { data })) return
+        return new Response("Upgrade failed", { status: 500 });
+      },
+    },
   },
 
   development: process.env.NODE_ENV !== "production",
 
   fetch(req, server) {
-    const u = new URL(req.url);
-    if (u.pathname === "/ws") {
-      // upgrade the request to a WebSocket
-      if (server.upgrade(req, { data: { id: crypto.randomUUID(), ...randomNameGenerator() } })) {
-        return; // do not return a Response
-      }
-      return new Response("Upgrade failed", { status: 500 });
-    }
     return new Response("Not found", { status: 404 });
   },
 
   websocket: {
-    message(ws, message) {
-
+    message(ws: Bun.ServerWebSocket<{
+      id: string;
+      name: string;
+      authorEmoji: string;
+      isTyping?: boolean;
+    }>, message) {
       if (message.toString() === 'ping') {
         ws.send('pong');
         return;
       }
 
       try {
-        // Check if message is a typing indicator
         const data = JSON.parse(message.toString());
+
         if (data.type === 'typing') {
-          ws.data.isTyping = data.isTyping;
           server.publish("chat", JSON.stringify({
             userId: ws.data.id,
             author: ws.data.name,
@@ -58,7 +48,9 @@ const server = serve<{
             timestamp: new Date().toISOString(),
           }));
           return;
-        } else if (data.type === 'message') {
+        }
+
+        else if (data.type === 'message') {
           server.publish("chat", JSON.stringify({
             userId: ws.data.id,
             author: ws.data.name,
@@ -69,17 +61,11 @@ const server = serve<{
           }));
           return;
         }
-      } catch (e) {
-        // If not JSON, treat as regular message
-      }
+      } catch (e) { }
 
-      // Regular message handling
-      server.publish("chat", JSON.stringify({
-        userId: ws.data.id,
-        author: ws.data.name,
-        authorEmoji: ws.data.authorEmoji,
-        message,
-        type: "message",
+      ws.send(JSON.stringify({
+        message: "Invalid message",
+        type: "error",
         timestamp: new Date().toISOString(),
       }));
     },
@@ -110,23 +96,14 @@ const server = serve<{
     },
 
     drain(ws) { },
+
+    maxPayloadLength: 1024 * 1024 * 0.5, // 512kb
     publishToSelf: true,
   },
 
 });
 
 console.log(`🚀 Server running at ${server.url}`);
-
-
-// setInterval(() => {
-//   server.publish("chat", JSON.stringify({
-//     message: `${Math.floor(Math.random() * 100)}% of the time it works every time.`,
-//     type: "message",
-//     author: "Server",
-//     authorEmoji: "👻",
-//     timestamp: new Date().toISOString(),
-//   }));
-// }, 100);
 
 
 const wordEmojis = {
@@ -222,6 +199,6 @@ const randomNameGenerator = () => {
 
   return {
     name: `${descriptors[Math.floor(Math.random() * descriptors.length)]} ${randomWord}`,
-    authorEmoji: wordEmojis[randomWord as keyof typeof wordEmojis],
+    emoji: wordEmojis[randomWord as keyof typeof wordEmojis],
   };
 }

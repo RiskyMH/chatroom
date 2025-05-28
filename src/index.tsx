@@ -80,6 +80,7 @@ const server = serve({
         message: `Client ${ws.data.id} connected`,
         type: "connect",
         timestamp: new Date().toISOString(),
+        currentUsers: server.subscriberCount("chat"),
       }));
     },
 
@@ -91,6 +92,7 @@ const server = serve({
         message: `Client ${ws.data.id} disconnected`,
         type: "disconnect",
         timestamp: new Date().toISOString(),
+        currentUsers: server.subscriberCount("chat"),
       }));
       ws.unsubscribe("chat");
     },

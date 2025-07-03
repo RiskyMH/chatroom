@@ -129,11 +129,11 @@ const SystemMessage = memo(({ message, currentUserId }: { message: ChatMessage, 
   }, []);
 
   return (
-    <div className="text-center my-4 group flex gap-2">
-      <span className="text-xs text-right text-gray-500 dark:text-gray-400/75 opacity-0 sm:group-hover:opacity-100 transition-all duration-300 w-full self-center">
+    <div className="text-center my-4 group flex gap-2 items-center justify-center">
+      <span className="text-xs text-right text-gray-500 dark:text-gray-400/75 opacity-0 sm:group-hover:opacity-100 transition-all duration-300 w-full self-center max-sm:hidden">
         {formatMessageTime(message.timestamp)}
       </span>
-      <span className="sm:text-nowrap text-sm text-gray-500 dark:text-gray-400/75 bg-slate-100/50 dark:bg-gray-800/50 px-4 py-2 rounded-full backdrop-blur-sm border border-slate-200/25 dark:border-gray-700/25 shadow-lg flex items-center justify-center gap-2 inline-flex">
+      <span className="sm:text-nowrap text-sm text-gray-500 dark:text-gray-400/75 bg-slate-100/50 dark:bg-gray-800/50 px-4 py-2 rounded-full backdrop-blur-sm border border-slate-200/25 dark:border-gray-700/25 shadow-lg flex items-center justify-center gap-2">
         <div className="w-5 h-5 rounded-full bg-slate-200/75 dark:bg-gray-700/75 flex items-center justify-center">
           {message.authorEmoji && (
             <span className="text-base leading-none">{message.authorEmoji}</span>
@@ -141,7 +141,7 @@ const SystemMessage = memo(({ message, currentUserId }: { message: ChatMessage, 
         </div>
         {message.userId === currentUserId ? `You (${message.author}) have ` : `${message.author} has `} {message.type === "connect" ? "joined" : "left"}
       </span>
-      <span className="text-xs text-left text-gray-500 dark:text-gray-400/75 opacity-0 sm:group-hover:opacity-100 transition-all duration-300 w-full self-center">
+      <span className="text-xs text-left text-gray-500 dark:text-gray-400/75 opacity-0 sm:group-hover:opacity-100 transition-all duration-300 w-full self-center max-sm:hidden">
         {message.currentUsers && message.currentUsers > 0 && (
           `${message.currentUsers} users online`
         )}
@@ -297,7 +297,7 @@ const MessageGroupComponent = memo(({ group, userId }: { group: MessageGroup; us
                 </div>
                 {msg.timestamp && (
                   <div className={[
-                    'absolute top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400/75 sm:text-nowrap',
+                    'absolute top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400/75 text-nowrap',
                     'opacity-0 group-hover:opacity-100 transition-all duration-300',
                     isOwnMessage ? 'right-full mr-3' : 'left-full ml-3'
                   ].join(' ')}>

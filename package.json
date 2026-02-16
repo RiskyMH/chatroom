@@ -11,7 +11,7 @@
     "build": "bun run build.ts",
     "build:standalone": "bun run build.ts",
     "docker:build": "docker compose build",
-    "docker:deploy": "docker compose pull && docker compose up -d",
+    "docker:deploy": "docker compose pull && docker compose up -d --remove-orphans",
     "docker:logs": "docker compose logs -f"
   },
   "dependencies": {

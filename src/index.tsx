@@ -1,7 +1,6 @@
 import { serve } from "bun";
 import index from "./index.html";
 
-
 const server = serve({
   routes: {
     "/": index,
@@ -15,6 +14,10 @@ const server = serve({
         return new Response("Upgrade failed", { status: 500 });
       },
     },
+
+    // sus workarround for compiled to not actually embed the svg :(
+    ...(Bun.embeddedFiles.filter(file => file.name.endsWith(".svg")).reduce((acc, file) => ({ ...acc, ["/" + file.name]: new Response(file, { headers: { "Content-Type": file.type } }) }), {})),
+
     "/*": new Response("Not found", { status: 404 }),
   },
 

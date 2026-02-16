@@ -42,7 +42,7 @@ const server = serve({
       }
 
       try {
-        const data = JSON.parse(msg);
+        const data = JSON.parse(msg || "{}") || {};
 
         if (data.type === 'typing') {
           ws.publishText("chat", JSON.stringify({
@@ -50,13 +50,21 @@ const server = serve({
             author: ws.data.name,
             authorEmoji: ws.data.authorEmoji,
             type: "typing",
-            isTyping: data.isTyping,
+            isTyping: data.isTyping ?? false,
             timestamp: new Date().toISOString(),
           }));
           return;
         }
 
         else if (data.type === 'message') {
+          if (!data.message || typeof data.message !== "string") {
+            ws.send(JSON.stringify({
+              message: "Invalid message",
+              type: "error",
+              timestamp: new Date().toISOString(),
+            }));
+            return;
+          }
           ws.publishText("chat", JSON.stringify({
             userId: ws.data.id,
             author: ws.data.name,

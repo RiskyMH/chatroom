@@ -15,31 +15,34 @@ const server = serve({
         return new Response("Upgrade failed", { status: 500 });
       },
     },
+    "/*": new Response("Not found", { status: 404 }),
   },
 
   development: process.env.NODE_ENV !== "production",
 
-  fetch(req, server) {
-    return new Response("Not found", { status: 404 });
-  },
+  // fetch(req, server) {
+  //   return new Response("Not found", { status: 404 });
+  // },
 
   websocket: {
-    message(ws: Bun.ServerWebSocket<{
+    data: {} as {
       id: string;
       name: string;
       authorEmoji: string;
       isTyping?: boolean;
-    }>, message) {
-      if (message.toString() === 'ping') {
+    },
+    message(ws, message) {
+      const msg = message.toString();
+      if (message === 'ping') {
         ws.send('pong');
         return;
       }
 
       try {
-        const data = JSON.parse(message.toString());
+        const data = JSON.parse(msg);
 
         if (data.type === 'typing') {
-          server.publish("chat", JSON.stringify({
+          ws.publishText("chat", JSON.stringify({
             userId: ws.data.id,
             author: ws.data.name,
             authorEmoji: ws.data.authorEmoji,
@@ -51,7 +54,7 @@ const server = serve({
         }
 
         else if (data.type === 'message') {
-          server.publish("chat", JSON.stringify({
+          ws.publishText("chat", JSON.stringify({
             userId: ws.data.id,
             author: ws.data.name,
             authorEmoji: ws.data.authorEmoji,
@@ -73,7 +76,7 @@ const server = serve({
     open(ws) {
       ws.subscribe("chat");
 
-      server.publish("chat", JSON.stringify({
+      ws.publishText("chat", JSON.stringify({
         userId: ws.data.id,
         author: ws.data.name,
         authorEmoji: ws.data.authorEmoji,
@@ -85,7 +88,7 @@ const server = serve({
     },
 
     close(ws) {
-      server.publish("chat", JSON.stringify({
+      ws.publishText("chat", JSON.stringify({
         userId: ws.data.id,
         author: ws.data.name,
         authorEmoji: ws.data.authorEmoji,
@@ -96,9 +99,11 @@ const server = serve({
       }));
       ws.unsubscribe("chat");
     },
+    // drain(ws) { },
 
-    drain(ws) { },
-
+    closeOnBackpressureLimit: true, // idrc
+    sendPings: true,
+    backpressureLimit: 1024 * 1024 * 2, // 2mb
     maxPayloadLength: 1024 * 1024 * 0.5, // 512kb
     publishToSelf: true,
   },

@@ -1,0 +1,18 @@
+services:
+   chatroom:
+     image: ghcr.io/riskymh/chatroom:latest
+     build: .
+     restart: unless-stopped
+     init: true
+     environment:
+       NODE_ENV: production
+       FORCE_COLOR: 1
+       PORT: 3000
+     ports:
+        - "${PORT:-3000}:3000"
+     deploy:
+       resources:
+         limits:
+           memory: 128M
+         reservations:
+           memory: 64M

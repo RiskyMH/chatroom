@@ -334,7 +334,7 @@ const TypingIndicator = memo(({ typingUsers, currentUserId }: {
       </div>
       <span>
         {otherTypingUsers.length === 1
-          ? `${otherTypingUsers[0].author} is typing...`
+          ? `${otherTypingUsers[0]?.author ?? 'Someone'} is typing...`
           : `${otherTypingUsers.length} people are typing...`}
       </span>
     </div>

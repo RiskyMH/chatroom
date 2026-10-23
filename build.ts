@@ -28,6 +28,7 @@ const result = await build({
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
   },
+  reactCompiler: true,
 });
 
 // Print the results
